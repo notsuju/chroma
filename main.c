@@ -80,12 +80,11 @@ int main(int argc, char *argv[])
                 move_cursor_left();
                 c--;
             }
-            else if (keystroke == 'x')
-            {
-                scanf(" %d", &r);
-                scanf(" %d", &c);
-                // set_cursor_position(r,c);
-            }
+            // else if (keystroke == 'x')
+            // {
+            //     scanf(" %d", &r);
+            //     scanf(" %d", &c);
+            // }
 
             else if (keystroke == 'q')
             {
@@ -123,7 +122,11 @@ int main(int argc, char *argv[])
             // DELETE CHARACTER
             else if (keystroke == 127 || keystroke == '\b')
             {
-                if (c > 1)
+                if (c == 1 && r == 1)
+                {
+                    continue;
+                }
+                else if (c > 1)
                 {
                     for (int i = c - 1; i < MAX_LINE_LENGTH; i++)
                     {
@@ -131,35 +134,43 @@ int main(int argc, char *argv[])
                     }
                     c--;
                 }
+                else
+                {
+                    for (int i = c; i < MAX_LINE_LENGTH; i++)
+                    {
+                        buffer[r - 1][i - 1] = buffer[r - 1][i];
+                    }
+                    r--;
+                    c = strlen(buffer[r - 1]);
+                }
             }
             // NEW LINE
             else if (keystroke == '\n')
             {
-                // Shift all lines down to make room for the new line
+
+                // Shift all lines down
                 for (int i = line_no; i > r; i--)
                 {
+                    memset(buffer[i], '\0', MAX_LINE_LENGTH); // Clears the line and set it to null to avoid overlapping
                     strcpy(buffer[i], buffer[i - 1]);
                 }
 
-                // Handle the split at cursor position
+                memset(buffer[r], '\0', MAX_LINE_LENGTH);
                 int line_length = strlen(buffer[r - 1]);
                 if (c - 1 < line_length)
                 {
-                    // Copy the rest of current line to new line
                     strcpy(buffer[r], &buffer[r - 1][c - 1]);
-                    // Terminate current line at cursor position
                     buffer[r - 1][c - 1] = '\n';
                     buffer[r - 1][c] = '\0';
                 }
                 else
                 {
-                    // If cursor is at end of line, just add empty line
                     buffer[r - 1][line_length - 1] = '\n';
                     buffer[r - 1][line_length] = '\0';
-                    // buffer[r][0] = '\n';
-                    // buffer[r][1] = '\0';
+                    buffer[r][0] = '\n';
+                    buffer[r][1] = '\0';
                 }
-                // UPDATE CURSOR POSITION
+
                 r++;
                 c = 1;
                 line_no++;
@@ -180,7 +191,7 @@ int main(int argc, char *argv[])
                     buffer[r - 1][c - 1] = keystroke;
                     c++;
                 }
-                counter++;
+                counter = 1;
             }
         }
         // DISPLAY THE FILE AFTER EVERY CHANGE
