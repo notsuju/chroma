@@ -1,4 +1,4 @@
 this is a test if chroma can read input correctly from a file and take command line input while doing that. I think this is a long one line.
-this is line second of the file .
+this is line second of the file
 this is line third of the same file.
 Is it working ?

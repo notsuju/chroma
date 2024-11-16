@@ -3,14 +3,15 @@
 #include <unistd.h>
 #include <termios.h>
 #include <string.h>
+
 #define MAX_LINES 1000
 #define MAX_LINE_LENGTH 1024
 
+// FUNCTIONS
 void move_cursor_up();
 void move_cursor_down();
 void move_cursor_right();
 void move_cursor_left();
-void clear_terminal();
 void set_cursor_position(int r, int c);
 void enable_raw_mode();
 void disable_raw_mode();
@@ -19,7 +20,6 @@ struct termios orig_termios;
 
 int main(int argc, char *argv[])
 {
-    // clear_terminal();
     system("clear");
     if (argc != 2)
     {
@@ -38,7 +38,6 @@ int main(int argc, char *argv[])
     // char *buffer = (char*)malloc(1024 * sizeof(char));
     while (fgets(buffer[line_no], MAX_LINE_LENGTH, input) != NULL)
     {
-        // printf("%s", buffer);
         line_no++;
     }
     for (int i = 0; i < line_no; i++)
@@ -51,14 +50,16 @@ int main(int argc, char *argv[])
     int r = 1;
     int c = 1;
     int editing = 0;
-    // clear_terminal();
+    int counter;
     while (1)
     {
         set_cursor_position(r, c);
 
         keystroke = getchar();
+        // COMMAND MODE
         if (!editing)
         {
+            counter = 0;
             if (keystroke == 'k' && r > 1)
             {
                 move_cursor_up();
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
                 move_cursor_down();
                 r++;
             }
-            else if (keystroke == 'l' && c < MAX_LINE_LENGTH)
+            else if (keystroke == 'l' && c < strlen(buffer[r - 1]))
             {
                 move_cursor_right();
                 c++;
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
                 move_cursor_left();
                 c--;
             }
-            else if (keystroke == 'j')
+            else if (keystroke == 'x')
             {
                 scanf(" %d", &r);
                 scanf(" %d", &c);
@@ -110,12 +111,16 @@ int main(int argc, char *argv[])
                 fclose(output);
             }
         }
+
+        // EDITING MODE
         if (editing)
         {
+            // EXIT EDITING MODE
             if (keystroke == '\033')
             {
                 editing = 0;
             }
+            // DELETE CHARACTER
             else if (keystroke == 127 || keystroke == '\b')
             {
                 if (c > 1)
@@ -127,35 +132,58 @@ int main(int argc, char *argv[])
                     c--;
                 }
             }
+            // NEW LINE
             else if (keystroke == '\n')
             {
+                // Shift all lines down to make room for the new line
                 for (int i = line_no; i > r; i--)
                 {
                     strcpy(buffer[i], buffer[i - 1]);
                 }
+
+                // Handle the split at cursor position
                 int line_length = strlen(buffer[r - 1]);
-                for (int i = 0; i < line_length; i++)
+                if (c - 1 < line_length)
                 {
-                    buffer[r][i] = buffer[r - 1][c - 1 + i];
+                    // Copy the rest of current line to new line
+                    strcpy(buffer[r], &buffer[r - 1][c - 1]);
+                    // Terminate current line at cursor position
+                    buffer[r - 1][c - 1] = '\n';
+                    buffer[r - 1][c] = '\0';
                 }
-                buffer[r][line_length] = '\0';
-                // buffer[r - 1][c - 1] = '\0';
+                else
+                {
+                    // If cursor is at end of line, just add empty line
+                    buffer[r - 1][line_length - 1] = '\n';
+                    buffer[r - 1][line_length] = '\0';
+                    // buffer[r][0] = '\n';
+                    // buffer[r][1] = '\0';
+                }
+                // UPDATE CURSOR POSITION
                 r++;
                 c = 1;
                 line_no++;
             }
+            // INSERT CHARACTER
             else if (c < MAX_LINE_LENGTH)
             {
-                int line_length = strlen(buffer[r - 1]);
-                for (int i = line_length; i >= c - 1; i--)
+                if (counter)
                 {
-                    buffer[r - 1][i] = buffer[r - 1][i - 1];
+                    int line_length = strlen(buffer[r - 1]);
+                    if (line_length > 0)
+                    {
+                        for (int i = line_length; i >= c - 1; i--)
+                        {
+                            buffer[r - 1][i] = buffer[r - 1][i - 1];
+                        }
+                    }
+                    buffer[r - 1][c - 1] = keystroke;
+                    c++;
                 }
-                buffer[r - 1][c - 1] = keystroke;
-                c++;
+                counter++;
             }
         }
-
+        // DISPLAY THE FILE AFTER EVERY CHANGE
         system("clear");
         for (int i = 0; i < line_no; i++)
         {
@@ -185,11 +213,6 @@ void move_cursor_right()
 void move_cursor_left()
 {
     printf("\033[D");
-}
-
-void clear_terminal()
-{
-    printf("\033[2J");
 }
 
 void set_cursor_position(int r, int c)
