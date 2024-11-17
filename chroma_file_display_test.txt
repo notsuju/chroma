@@ -1,4 +1,6 @@
 this is a test if chroma can read input correctly from a file.
-this is line second of the file
-this is line third of the same file
+so what's its like to do things normally
+this is line second of the file.
+this is line third of the same file.
 this is the fourth line of the file.
+this is the fifth line of the file.
