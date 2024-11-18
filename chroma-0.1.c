@@ -12,10 +12,10 @@ void set_cursor_position(int r, int c);
 void enable_raw_mode();
 void disable_raw_mode();
 int check_boundaries(int r, int c, int number_of_lines, char **buffer);
-struct termios orig_termios;
 void clear_screen();
 void refresh_screen(char **buffer, int number_of_lines);
 
+struct termios orig_termios;
 int main(int argc, char *argv[])
 {
     if (argc != 2)
