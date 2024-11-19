@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
-#include <string.h>
+
 
 #define MAX_LINES 1000
 #define MAX_LINE_LENGTH 1024
