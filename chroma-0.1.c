@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <termios.h>
 #include <string.h>
-#include <ctype.h>
 
 #define MAX_LINES 1000
 #define MAX_LINE_LENGTH 1024
@@ -135,11 +134,6 @@ int main(int argc, char *argv[])
             {
                 c--;
             }
-//            else if(keystroke == 'm')
-//            {
-//                r = getchar();
-//                c = getchar();
-//            }
             else if (keystroke == 'q')
             {
                 clear_screen();
