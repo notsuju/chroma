@@ -46,6 +46,8 @@ int main(int argc, char *argv[])
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
+    putp("\033[1 q");
+    fflush(stdout);
 
     // Actually algorithm
     int r = 0;
@@ -85,6 +87,7 @@ int main(int argc, char *argv[])
             continue;
         case 27:
             editing = 0;
+            putp("\033[1 q");
             break;
         default:
             break;
@@ -94,12 +97,15 @@ int main(int argc, char *argv[])
             insert = 0;
             if (keystroke == 'q')
             {
+                putp("\033[1 q");
                 endwin();
                 return 0;
             }
             else if (keystroke == 'i')
             {
                 editing = 1;
+                putp("\033[5 q");
+                continue;
             }
             else if (keystroke == 's')
             {
@@ -157,32 +163,23 @@ int main(int argc, char *argv[])
                 }
             }
             // NEW LINE
-            else if (keystroke == KEY_ENTER)
+            else if (keystroke == KEY_ENTER || keystroke == 10 || keystroke == 13)
             {
-
                 // Shift all lines down
-                for (int i = no_of_lines; i > r + 1; i--)
+                for (int i = no_of_lines; i > r; i--)
                 {
-                    // Clearing the line to avoid overlapping
-                    memset(buffer[i], '\0', MAX_LINE_LENGTH);
                     strcpy(buffer[i], buffer[i - 1]);
                 }
 
-                memset(buffer[r], '\0', MAX_LINE_LENGTH);
-                int line_length = strlen(buffer[r]);
-                if (c < line_length)
-                {
-                    strcpy(buffer[r + 1], &buffer[r][c]);
-                    buffer[r][c] = '\n';
-                    buffer[r][c + 1] = '\0';
-                }
-                else
-                {
-                    buffer[r][line_length - 1] = '\n';
-                    buffer[r][line_length] = '\0';
-                    buffer[r + 1][0] = '\n';
-                    buffer[r + 1][0] = '\0';
-                }
+                // Create new line buffer
+                char temp[MAX_LINE_LENGTH];
+                strcpy(temp, &buffer[r][c]);
+                buffer[r][c] = '\n';
+                buffer[r][c + 1] = '\0';
+
+                // Set up next line
+                memset(buffer[r + 1], '\0', MAX_LINE_LENGTH);
+                strcpy(buffer[r + 1], temp);
 
                 r++;
                 c = 0;
