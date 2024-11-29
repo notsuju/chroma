@@ -4,6 +4,7 @@
 #include <string.h>
 
 void display_file(int no_of_lines, char *buffer[], int r, int c);
+void exit_ncurses_environment(char *buffer[]);
 #define MAX_LINES 1024
 #define MAX_LINE_LENGTH 1200
 int main(int argc, char *argv[])
@@ -32,7 +33,7 @@ int main(int argc, char *argv[])
     {
         printf("Error allocating memory\n");
         return 2;
-    }
+    } 
 
     // Copying into Buffer
     int no_of_lines = 0;
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
     {
         no_of_lines++;
     }
+    fclose(input);
 
     // Initialising screen
     initscr();
@@ -98,7 +100,8 @@ int main(int argc, char *argv[])
             if (keystroke == 'q')
             {
                 putp("\033[1 q");
-                endwin();
+                exit_ncurses_environment(buffer);
+                printf("Quit the program successfully\n");
                 return 0;
             }
             else if (keystroke == 'i')
@@ -112,8 +115,8 @@ int main(int argc, char *argv[])
                 FILE *output = fopen(argv[1], "w");
                 if (output == NULL)
                 {
-                    printf("Error saving file");
-                    endwin();
+                    exit_ncurses_environment(buffer);
+                    printf("Error saving file\n");
                     return 3;
                 }
                 for (int i = 0; i < no_of_lines; i++)
@@ -210,17 +213,10 @@ int main(int argc, char *argv[])
             }
         } // if editing
     } // while loop
-
-    // Important
-    endwin();
-    for (int i = 0; i < MAX_LINES; i++)
-    {
-        free(buffer[i]);
-    }
-    free(buffer);
-    buffer = NULL;
+    exit_ncurses_environment(buffer); 
     return 0;
 }
+
 void display_file(int no_of_lines, char *buffer[], int r, int c)
 {
     clear();
@@ -230,4 +226,17 @@ void display_file(int no_of_lines, char *buffer[], int r, int c)
     }
     move(r, c);
     refresh();
+    return;
+}
+
+void exit_ncurses_environment(char *buffer[])
+{
+    endwin(); 
+    for (int i = 0; i < MAX_LINES; i++)
+    {
+        free(buffer[i]);
+    }
+    free(buffer);
+    buffer = NULL;
+    return;
 }
