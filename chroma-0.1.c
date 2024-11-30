@@ -7,6 +7,8 @@ void display_file(int no_of_lines, char *buffer[], int r, int c);
 void exit_ncurses_environment(char *buffer[]);
 #define MAX_LINES 1024
 #define MAX_LINE_LENGTH 1200
+#define ESCAPE_KEY 27
+#define KEY_TAB '\t'
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -20,7 +22,8 @@ int main(int argc, char *argv[])
     if (input == NULL)
     {
         printf("Error opening the file\n");
-        return 1; }
+        return 1;
+    }
 
     // Allocating memory
     char **buffer = (char **)malloc(MAX_LINES * sizeof(char *));
@@ -32,7 +35,7 @@ int main(int argc, char *argv[])
     {
         printf("Error allocating memory\n");
         return 2;
-    } 
+    }
 
     // Copying into Buffer
     int no_of_lines = 0;
@@ -49,6 +52,7 @@ int main(int argc, char *argv[])
     keypad(stdscr, TRUE);
     putp("\033[1 q");
     fflush(stdout);
+    // timeout(100); // Set a timeout for getch() to handle ESC key better
 
     // Actually algorithm
     int r = 0;
@@ -85,10 +89,11 @@ int main(int argc, char *argv[])
                 c--;
             }
             continue;
-        case 27:
+        case ESCAPE_KEY:
             editing = 0;
             putp("\033[1 q");
-            break;
+            fflush(stdout);
+            continue;
         default:
             break;
         }
@@ -97,14 +102,32 @@ int main(int argc, char *argv[])
             if (keystroke == 'q')
             {
                 putp("\033[1 q");
+                fflush(stdout);
                 exit_ncurses_environment(buffer);
                 printf("Quit the program successfully\n");
                 return 0;
+            }
+            else if (keystroke == 'k' && r > 0)
+            {
+                r--;
+            }
+            else if (keystroke == 'j' && r < no_of_lines - 1)
+            {
+                r++;
+            }
+            else if (keystroke == 'h' && c > 0)
+            {
+                c--;
+            }
+            else if (keystroke == 'l' && c < (strlen(buffer[r]) - 1))
+            {
+                c++;
             }
             else if (keystroke == 'i')
             {
                 editing = 1;
                 putp("\033[5 q");
+                fflush(stdout);
                 continue;
             }
             else if (keystroke == 's')
@@ -125,8 +148,21 @@ int main(int argc, char *argv[])
         }
         if (editing)
         {
+            // TAB
+            if (keystroke == KEY_TAB && c < MAX_LINE_LENGTH)
+            {
+                char temp[MAX_LINE_LENGTH];
+                strcpy(temp, &buffer[r][c]);
+                for(int i = c; i < c + 4; i++)
+                {
+                    buffer[r][i] = ' ';
+                }
+                buffer[r][c + 4] = '\0';
+                strcat(buffer[r], temp);
+                c += 4;
+            }
             // DELETE CHARACTER
-            if (keystroke == KEY_BACKSPACE)
+            else if (keystroke == KEY_BACKSPACE)
             {
                 if (c == 0 && r == 0)
                 {
@@ -206,7 +242,7 @@ int main(int argc, char *argv[])
             }
         } // if editing
     } // while loop
-    exit_ncurses_environment(buffer); 
+    exit_ncurses_environment(buffer);
     return 0;
 }
 
@@ -224,7 +260,7 @@ void display_file(int no_of_lines, char *buffer[], int r, int c)
 
 void exit_ncurses_environment(char *buffer[])
 {
-    endwin(); 
+    endwin();
     for (int i = 0; i < MAX_LINES; i++)
     {
         free(buffer[i]);
