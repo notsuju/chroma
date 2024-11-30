@@ -17,6 +17,7 @@ Usage: ./chroma file_name
  s --save file
  q --quit the program
  i --edit mode
+ x --jump to a specified line and column x <line_number>enter<column_number> Eg. x 4 1 jumps to the start of 4th line
 
  Edit Mode: 
 
