@@ -2,3 +2,6 @@ chroma-0.1
 *.txt
 .vscode/
 chroma-0.1.exe
+testncurses.c
+testncurses.o
+testncurses
