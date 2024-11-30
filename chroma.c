@@ -13,13 +13,13 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        printf("Use './chroma-0.1 help' for more information\n");
+        printf("Use './chroma help' for more information\n");
         return 1;
     }
     // Help prompt
     if (strcmp(argv[1], "help") == 0)
     {
-        printf(" Usage: './chroma-0.1 file_name'\n\n");
+        printf(" Usage: './chroma file_name'\n\n");
         printf(" Command Mode: \n\n");
         printf(" k --move up\n j --move down\n l --move right\n h --move left\n s --save file\n q --quit the program\n i --edit mode\n x <line_number> enter <column_number> enter --jump to a specific line\n\n");
         printf(" Edit Mode: \n\n");
