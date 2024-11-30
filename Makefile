@@ -2,15 +2,15 @@ CC = gcc
 CFLAGS = -Wall -g
 LDFLAGS = -lncurses
 
-SOURCES = chroma-0.1.c
+SOURCES = chroma.c
 OBJECTS = $(SOURCES:.c=.o)
 
 # Default target
-all: chroma-0.1
+all: chroma
 
 # Link object files to create the executable
-chroma-0.1: $(OBJECTS)
-	$(CC) -o chroma-0.1 $(OBJECTS) $(LDFLAGS)
+chroma: $(OBJECTS)
+	$(CC) -o chroma $(OBJECTS) $(LDFLAGS)
 
 # Compile source files to object files
 %.o: %.c
@@ -18,4 +18,4 @@ chroma-0.1: $(OBJECTS)
 
 # Clean up generated files
 clean:
-	rm -f chroma-0.1 $(OBJECTS)
+	rm -f chroma $(OBJECTS)

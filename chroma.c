@@ -267,7 +267,7 @@ void display_file(int no_of_lines, char *buffer[], int r, int c)
         mvprintw(i, 0, "%s", buffer[i]);
     }
     move(r, c);
-    refresh();
+    // refresh();
     return;
 }
 
