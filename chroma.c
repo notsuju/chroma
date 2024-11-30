@@ -136,6 +136,16 @@ int main(int argc, char *argv[])
             {
                 c++;
             }
+            else if (keystroke == 'x')
+            {
+                int x, y;
+                scanf("%d %d", &x, &y);
+                if (x <= no_of_lines && y <= strlen(buffer[x]))
+                {
+                    r = x - 1;
+                    c = y - 1;
+                }
+            }
             else if (keystroke == 'i')
             {
                 editing = 1;
