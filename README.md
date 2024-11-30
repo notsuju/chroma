@@ -3,10 +3,10 @@ Chroma is one of my first projects, it is basically a very simple terminal based
 # Preview
 ![gif](assests/chroma_test-ezgif.com-video-to-gif-converter.gif)
 # Usage
-run `./chroma-0.1 help` for options
+run `./chroma help` for options
 
 ```
-Usage: ./chroma-0.1 file_name
+Usage: ./chroma file_name
 
  Command Mode: 
 
