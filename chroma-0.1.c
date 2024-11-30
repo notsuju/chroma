@@ -1,21 +1,14 @@
-#include <stdio.h>
+#include <ncurses.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <termios.h>
+#include <stdio.h>
 #include <string.h>
 
-#define MAX_LINES 1000
-#define MAX_LINE_LENGTH 1024
-
-// FUNCTIONS
-void set_cursor_position(int r, int c);
-void enable_raw_mode();
-void disable_raw_mode();
-int check_boundaries(int r, int c, int number_of_lines, char **buffer);
-void clear_screen();
-void refresh_screen(char **buffer, int number_of_lines);
-
-struct termios orig_termios;
+void display_file(int no_of_lines, char *buffer[], int r, int c);
+void exit_ncurses_environment(char *buffer[]);
+#define MAX_LINES 1024
+#define MAX_LINE_LENGTH 1200
+#define ESCAPE_KEY 27
+#define KEY_TAB '\t'
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -34,10 +27,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    clear_screen();
-    // Enabling raw mode to read keystrokes without waiting for enter key
-    enable_raw_mode();
-
+    // Opening File
     FILE *input = fopen(argv[1], "r");
     if (input == NULL)
     {
@@ -45,6 +35,7 @@ int main(int argc, char *argv[])
         fclose(new);
     }
 
+    // Allocating memory
     char **buffer = (char **)malloc(MAX_LINES * sizeof(char *));
     for (int i = 0; i < MAX_LINES; i++)
     {
@@ -53,279 +44,241 @@ int main(int argc, char *argv[])
     if (buffer == NULL)
     {
         printf("Error allocating memory\n");
-        disable_raw_mode();
         return 2;
     }
-    int number_of_lines = 0;
 
+    // Copying into Buffer
+    int no_of_lines = 0;
     if (input != NULL)
     {
-        while (fgets(buffer[number_of_lines], MAX_LINE_LENGTH, input) != NULL)
+        while (fgets(buffer[no_of_lines], MAX_LINE_LENGTH, input))
         {
-            number_of_lines++;
+            no_of_lines++;
         }
-        for (int i = 0; i < number_of_lines; i++)
-        {
-            printf("%s", buffer[i]);
-        }
-
-        // adding a newline and null terminator to the last line of the file
-        int last_line_length = strlen(buffer[number_of_lines - 1]);
-        if (buffer[number_of_lines - 1][last_line_length - 1] != '\n')
-        {
-            if (last_line_length + 1 <= MAX_LINE_LENGTH)
-            {
-                buffer[number_of_lines - 1][last_line_length] = '\n';
-                buffer[number_of_lines - 1][last_line_length + 1] = '\0';
-            }
-        }
+        fclose(input);
     }
 
-    // Navigation
-    char keystroke;
-    int r = 1;
-    int c = 1;
+    // Initialising screen
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    putp("\033[1 q");
+    fflush(stdout);
+    // timeout(100); // Set a timeout for getch() to handle ESC key better
+
+    // Actually algorithm
+    int r = 0;
+    int c = 0;
     int editing = 0;
-    int insert_mode;
+    int keystroke;
     while (1)
     {
-        // DISPLAY THE FILE AFTER EVERY CHANGE
-        if (editing)
+        display_file(no_of_lines, buffer, r, c);
+        keystroke = getch();
+        switch (keystroke)
         {
-            refresh_screen(buffer, number_of_lines);
-        }
-        set_cursor_position(r, c);
-
-        keystroke = getchar();
-
-        // COMMAND MODE
-        if (!editing)
-        {
-            insert_mode = 0;
-            if (keystroke == 'k' && r > 1)
+        case KEY_UP:
+            if (r > 0)
             {
-                if (c >= strlen(buffer[r - 2]))
-                {
-                    c = strlen(buffer[r - 2]);
-                    r--;
-                }
-                else
-                {
-                    r--;
-                }
+                r--;
             }
-            else if (keystroke == 'j' && r < number_of_lines)
+            continue;
+        case KEY_DOWN:
+            if (r < (no_of_lines - 1))
             {
-                if (c >= strlen(buffer[r]))
-                {
-                    c = strlen(buffer[r]);
-                    r++;
-                }
-                else
-                {
-                    r++;
-                }
+                r++;
             }
-            else if (keystroke == 'l' && c < strlen(buffer[r - 1]))
+            continue;
+        case KEY_RIGHT:
+            if (c < (strlen(buffer[r]) - 1))
             {
                 c++;
             }
-            else if (keystroke == 'h' && c > 1)
+            continue;
+        case KEY_LEFT:
+            if (c > 0)
             {
                 c--;
             }
-            else if (keystroke == 'q')
+            continue;
+        case ESCAPE_KEY:
+            editing = 0;
+            putp("\033[1 q");
+            fflush(stdout);
+            continue;
+        default:
+            break;
+        }
+        if (!editing)
+        {
+            if (keystroke == 'q')
             {
-                clear_screen();
-                break;
+                putp("\033[1 q");
+                fflush(stdout);
+                exit_ncurses_environment(buffer);
+                printf("Quit the program successfully\n");
+                return 0;
+            }
+            else if (keystroke == 'k' && r > 0)
+            {
+                r--;
+            }
+            else if (keystroke == 'j' && r < no_of_lines - 1)
+            {
+                r++;
+            }
+            else if (keystroke == 'h' && c > 0)
+            {
+                c--;
+            }
+            else if (keystroke == 'l' && c < (strlen(buffer[r]) - 1))
+            {
+                c++;
             }
             else if (keystroke == 'i')
             {
                 editing = 1;
-            }
-            else if (keystroke == 'x')
-            {
-                int x, y;
-                scanf(" %d", &x);
-                scanf(" %d", &y);
-                if (check_boundaries(x, y, number_of_lines, buffer))
-                {
-                    r = x;
-                    c = y;
-                }
+                putp("\033[5 q");
+                fflush(stdout);
+                continue;
             }
             else if (keystroke == 's')
             {
                 FILE *output = fopen(argv[1], "w");
                 if (output == NULL)
                 {
-                    printf("Error saving file");
-                    disable_raw_mode();
+                    exit_ncurses_environment(buffer);
+                    printf("Error saving file\n");
                     return 3;
                 }
-                for (int i = 0; i < number_of_lines; i++)
+                for (int i = 0; i < no_of_lines; i++)
                 {
                     fputs(buffer[i], output);
                 }
                 fclose(output);
             }
         }
-
-        // EDITING MODE
         if (editing)
         {
-            // EXIT EDITING MODE
-            if (keystroke == '\033')
+            // TAB
+            if (keystroke == KEY_TAB && c < MAX_LINE_LENGTH)
             {
-                editing = 0;
+                char temp[MAX_LINE_LENGTH];
+                strcpy(temp, &buffer[r][c]);
+                for(int i = c; i < c + 4; i++)
+                {
+                    buffer[r][i] = ' ';
+                }
+                buffer[r][c + 4] = '\0';
+                strcat(buffer[r], temp);
+                c += 4;
             }
             // DELETE CHARACTER
-            else if (keystroke == 127 || keystroke == '\b')
+            else if (keystroke == KEY_BACKSPACE)
             {
-                if (c == 1 && r == 1)
+                if (c == 0 && r == 0)
                 {
                     continue;
                 }
-                else if (c > 1)
+                else if (c > 0)
                 {
-                    for (int i = c - 1; i < MAX_LINE_LENGTH; i++)
+                    for (int i = c; i < MAX_LINE_LENGTH; i++)
                     {
-                        buffer[r - 1][i - 1] = buffer[r - 1][i];
+                        buffer[r][i - 1] = buffer[r][i];
                     }
                     c--;
                 }
                 else
                 {
-                    int line_length = strlen(buffer[r - 2]);
+                    int line_length = strlen(buffer[r - 1]);
                     // Setting the cursor to the end of the previous line
                     r--;
-                    c = strlen(buffer[r - 1]);
+                    c = strlen(buffer[r]);
 
                     // Removing the endline character from the previous line
-                    buffer[r - 1][line_length - 1] = '\0';
+                    buffer[r][line_length - 1] = '\0';
 
                     // Concatenating the previous line with the current line
-                    strcat(buffer[r - 1], buffer[r]);
+                    strcat(buffer[r], buffer[r + 1]);
 
                     // Shifting all the lines up
-                    for (int i = r; i < number_of_lines; i++)
+                    for (int i = r + 1; i < no_of_lines; i++)
                     {
                         memset(buffer[i], '\0', MAX_LINE_LENGTH);
                         strcpy(buffer[i], buffer[i + 1]);
                     }
-                    number_of_lines--;
+                    no_of_lines--;
                 }
             }
             // NEW LINE
-            else if (keystroke == '\n')
+            else if (keystroke == KEY_ENTER || keystroke == 10 || keystroke == 13)
             {
-
                 // Shift all lines down
-                for (int i = number_of_lines; i > r; i--)
+                for (int i = no_of_lines; i > r; i--)
                 {
-                    // Clearing the line to avoid overlapping
-                    memset(buffer[i], '\0', MAX_LINE_LENGTH);
                     strcpy(buffer[i], buffer[i - 1]);
                 }
 
-                memset(buffer[r], '\0', MAX_LINE_LENGTH);
-                int line_length = strlen(buffer[r - 1]);
-                if (c - 1 < line_length)
-                {
-                    strcpy(buffer[r], &buffer[r - 1][c - 1]);
-                    buffer[r - 1][c - 1] = '\n';
-                    buffer[r - 1][c] = '\0';
-                }
-                else
-                {
-                    buffer[r - 1][line_length - 1] = '\n';
-                    buffer[r - 1][line_length] = '\0';
-                    buffer[r][0] = '\n';
-                    buffer[r][0] = '\0';
-                }
+                // Create new line buffer
+                char temp[MAX_LINE_LENGTH];
+                strcpy(temp, &buffer[r][c]);
+                buffer[r][c] = '\n';
+                buffer[r][c + 1] = '\0';
+
+                // Set up next line
+                memset(buffer[r + 1], '\0', MAX_LINE_LENGTH);
+                strcpy(buffer[r + 1], temp);
 
                 r++;
-                c = 1;
-                number_of_lines++;
+                c = 0;
+                no_of_lines++;
             }
             // INSERT CHARACTER
             else if (c < MAX_LINE_LENGTH)
             {
-                if (insert_mode)
+                int line_length = strlen(buffer[r]);
+                // For handling empty first line
+                if (c == 0 && r == 0 && line_length == 0)
                 {
-                    int line_length = strlen(buffer[r - 1]);
-                    // For handling empty first line
-                    if (c == 1 && r == 1 && line_length == 0)
-                    {
-                        buffer[0][0] = '\n';
-                        buffer[0][1] = '\0';
-                        number_of_lines++;
-                        line_length++;
-                    }
-                    for (int i = line_length; i >= c - 1; i--)
-                    {
-                        buffer[r - 1][i] = buffer[r - 1][i - 1];
-                    }
-                    buffer[r - 1][c - 1] = keystroke;
-                    c++;
+                    buffer[0][0] = '\n';
+                    buffer[0][1] = '\0';
+                    no_of_lines++;
+                    line_length++;
                 }
-                insert_mode = 1;
+                for (int i = line_length; i >= c; i--)
+                {
+                    buffer[r][i] = buffer[r][i - 1];
+                }
+                buffer[r][c] = keystroke;
+                c++;
             }
-        }
-    }
-    disable_raw_mode();
-    if (input != NULL)
+        } // if editing
+    } // while loop
+    exit_ncurses_environment(buffer);
+    return 0;
+}
+
+void display_file(int no_of_lines, char *buffer[], int r, int c)
+{
+    clear();
+    for (int i = 0; i < no_of_lines; i++)
     {
-        fclose(input);
+        mvprintw(i, 0, "%s", buffer[i]);
     }
+    move(r, c);
+    refresh();
+    return;
+}
+
+void exit_ncurses_environment(char *buffer[])
+{
+    endwin();
     for (int i = 0; i < MAX_LINES; i++)
     {
         free(buffer[i]);
     }
     free(buffer);
     buffer = NULL;
-    return 0;
-}
-
-void set_cursor_position(int r, int c)
-{
-    printf("\033[%d;%dH", r, c);
-}
-
-void enable_raw_mode()
-{
-    tcgetattr(STDIN_FILENO, &orig_termios); // Get the current terminal settings
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ICANON | ECHO);          // Disable canonical mode and echo
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw); // Apply raw mode settings
-}
-
-void disable_raw_mode()
-{
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); // Restore the original settings
-}
-
-int check_boundaries(int r, int c, int number_of_lines, char **buffer)
-{
-    if (r > 0 && r <= number_of_lines && c <= strlen(buffer[r - 1]) && c > 0)
-    {
-        return 1;
-    }
-    return 0;
-}
-
-void clear_screen()
-{
-    printf("\033[2J"); // Clear entire screen
-    printf("\033[H");  // Move cursor to top-left corner
-}
-
-void refresh_screen(char **buffer, int number_of_lines)
-{
-    printf("\033[2J"); // Clear the screen first
-    printf("\033[H");  // Move cursor to home position (1,1) so that the next print starts from 1,1
-    for (int i = 0; i < number_of_lines; i++)
-    {
-        printf("%s", buffer[i]);
-    }
+    return;
 }
