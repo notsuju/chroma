@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
                     int line_length = strlen(buffer[r - 1]);
                     // Setting the cursor to the end of the previous line
                     r--;
-                    c = strlen(buffer[r]);
+                    c = strlen(buffer[r]) - 1;
 
                     // Removing the endline character from the previous line
                     buffer[r][line_length - 1] = '\0';
@@ -267,7 +267,7 @@ void display_file(int no_of_lines, char *buffer[], int r, int c)
         mvprintw(i, 0, "%s", buffer[i]);
     }
     move(r, c);
-    // refresh();
+    refresh();
     return;
 }
 
