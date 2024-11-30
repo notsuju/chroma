@@ -20,8 +20,7 @@ int main(int argc, char *argv[])
     if (input == NULL)
     {
         printf("Error opening the file\n");
-        return 1;
-    }
+        return 1; }
 
     // Allocating memory
     char **buffer = (char **)malloc(MAX_LINES * sizeof(char *));
@@ -56,7 +55,6 @@ int main(int argc, char *argv[])
     int c = 0;
     int editing = 0;
     int keystroke;
-    int insert;
     while (1)
     {
         display_file(no_of_lines, buffer, r, c);
@@ -96,7 +94,6 @@ int main(int argc, char *argv[])
         }
         if (!editing)
         {
-            insert = 0;
             if (keystroke == 'q')
             {
                 putp("\033[1 q");
@@ -191,25 +188,21 @@ int main(int argc, char *argv[])
             // INSERT CHARACTER
             else if (c < MAX_LINE_LENGTH)
             {
-                if (insert)
+                int line_length = strlen(buffer[r]);
+                // For handling empty first line
+                if (c == 0 && r == 0 && line_length == 0)
                 {
-                    int line_length = strlen(buffer[r]);
-                    // For handling empty first line
-                    if (c == 0 && r == 0 && line_length == 0)
-                    {
-                        buffer[0][0] = '\n';
-                        buffer[0][1] = '\0';
-                        no_of_lines++;
-                        line_length++;
-                    }
-                    for (int i = line_length; i >= c; i--)
-                    {
-                        buffer[r][i] = buffer[r][i - 1];
-                    }
-                    buffer[r][c] = keystroke;
-                    c++;
+                    buffer[0][0] = '\n';
+                    buffer[0][1] = '\0';
+                    no_of_lines++;
+                    line_length++;
                 }
-                insert = 1;
+                for (int i = line_length; i >= c; i--)
+                {
+                    buffer[r][i] = buffer[r][i - 1];
+                }
+                buffer[r][c] = keystroke;
+                c++;
             }
         } // if editing
     } // while loop
