@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
     FILE *input = fopen(argv[1], "r");
     if (input == NULL)
     {
-        printf("Error opening the file\n");
-        return 1;
+        FILE *new = fopen(argv[1], "w");
+        fclose(new);
     }
 
     // Allocating memory
@@ -39,11 +39,14 @@ int main(int argc, char *argv[])
 
     // Copying into Buffer
     int no_of_lines = 0;
-    while (fgets(buffer[no_of_lines], MAX_LINE_LENGTH, input))
+    if (input != NULL)
     {
-        no_of_lines++;
+        while (fgets(buffer[no_of_lines], MAX_LINE_LENGTH, input))
+        {
+            no_of_lines++;
+        }
+        fclose(input);
     }
-    fclose(input);
 
     // Initialising screen
     initscr();
