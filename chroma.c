@@ -5,6 +5,7 @@
 
 void display_file(int no_of_lines, char *buffer[], int r, int c);
 void exit_ncurses_environment(char *buffer[]);
+void help_prompt(const char *command);
 #define MAX_LINES 1024
 #define MAX_LINE_LENGTH 1200
 #define ESCAPE_KEY 27
@@ -13,18 +14,15 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        printf("Use './chroma help' for more information\n");
+        printf("Use './chroma --help' for more information\n");
         return 1;
     }
-    // Help prompt
-    if (strcmp(argv[1], "help") == 0)
+
+    // Help promp
+    if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "--h") == 0)
     {
-        printf(" Usage: './chroma file_name'\n\n");
-        printf(" Command Mode: \n\n");
-        printf(" k --move up\n j --move down\n l --move right\n h --move left\n s --save file\n q --quit the program\n i --edit mode\n x <line_number> enter <column_number> enter --jump to a specific line\n\n");
-        printf(" Edit Mode: \n\n");
-        printf(" esc --quit edit mode and enter command mode\n");
-        return -1;
+        help_prompt(argv[1]);
+        return 0;
     }
 
     // Opening File
@@ -70,7 +68,7 @@ int main(int argc, char *argv[])
     // Actually algorithm
     int r = 0;
     int c = 0;
-    int editing = 0;
+    int insert = 0;
     int keystroke;
     while (1)
     {
@@ -103,14 +101,14 @@ int main(int argc, char *argv[])
             }
             continue;
         case ESCAPE_KEY:
-            editing = 0;
+            insert = 0;
             putp("\033[1 q");
             fflush(stdout);
             continue;
         default:
             break;
         }
-        if (!editing)
+        if (!insert)
         {
             if (keystroke == 'q')
             {
@@ -139,8 +137,8 @@ int main(int argc, char *argv[])
             else if (keystroke == 'x')
             {
                 int x, y;
-                scanf("%d %d", &x, &y);
-                if (x <= no_of_lines && y <= strlen(buffer[x]))
+                scanf("%d %d", &x, &y); 
+                if (x <= no_of_lines && y <= strlen(buffer[x - 1]))
                 {
                     r = x - 1;
                     c = y - 1;
@@ -148,7 +146,7 @@ int main(int argc, char *argv[])
             }
             else if (keystroke == 'i')
             {
-                editing = 1;
+                insert = 1;
                 putp("\033[5 q");
                 fflush(stdout);
                 continue;
@@ -169,7 +167,7 @@ int main(int argc, char *argv[])
                 fclose(output);
             }
         }
-        if (editing)
+        if (insert)
         {
             // TAB
             if (keystroke == KEY_TAB && c < MAX_LINE_LENGTH)
@@ -291,4 +289,20 @@ void exit_ncurses_environment(char *buffer[])
     free(buffer);
     buffer = NULL;
     return;
+}
+
+void help_prompt(const char *command)
+{
+    printf("Usage: './chroma %s'\n\n", command);
+    printf("Normal Mode:\n");
+    printf("k   --move cursor up\n");
+    printf("j   --move cursor down\n");
+    printf("l   --move cursor right\n");
+    printf("h   --move cursor left\n");
+    printf("i   --insert mode\n");
+    printf("x   -x<line_number>enter<column_number>enter    --jumps to a specified line and column\n");
+    printf("s   --save file\n");
+    printf("\n");
+    printf("Insert Mode:\n");
+    printf("esc --enter normal mode\n");
 }
