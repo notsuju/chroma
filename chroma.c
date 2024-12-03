@@ -259,6 +259,7 @@ int main(int argc, char *argv[])
                 }
                 // endwin();
                 // printf("%s", clipboard_buffer[0]);
+                // printf("%s", clipboard_buffer[1]);
                 // return 0;
                 visual = 0;
                 normal = 1;
