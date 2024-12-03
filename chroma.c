@@ -3,13 +3,26 @@
 #include <stdio.h>
 #include <string.h>
 
-void display_file(int no_of_lines, char *buffer[], int r, int c);
-void exit_ncurses_environment(char *buffer[]);
-void help_prompt(const char *command);
 #define MAX_LINES 1024
 #define MAX_LINE_LENGTH 1200
+#define MAX_CLIPBOARD 400
 #define ESCAPE_KEY 27
 #define KEY_TAB '\t'
+
+char **clipboard()
+{
+    char **buffer = (char **)malloc(MAX_CLIPBOARD * sizeof(char *));
+    for (int i = 0; i < MAX_CLIPBOARD; i++)
+    {
+        buffer[i] = (char *)malloc(MAX_CLIPBOARD * sizeof(char));
+    }
+    return buffer;
+}
+void display_file(int no_of_lines, char *buffer[], int r, int c);
+void exit_ncurses_environment(char *buffer[], char *clipboard_buffer[]);
+void help_prompt(const char *command);
+void copy_partial_string(char *clipboard_buffer[], char *buffer[], int end_c, int end_r, int starting_c, int starting_r, int written_lines);
+void swap(int *a, int *b);
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -68,7 +81,15 @@ int main(int argc, char *argv[])
     // Actually algorithm
     int r = 0;
     int c = 0;
+    int starting_r = 0;
+    int starting_c = 0;
+    int end_r = 0;
+    int end_c = 0;
+    char **clipboard_buffer = clipboard();
+    int normal = 1;
     int insert = 0;
+    int visual = 0;
+    int written_lines = 0;
     int keystroke;
     while (1)
     {
@@ -101,20 +122,22 @@ int main(int argc, char *argv[])
             }
             continue;
         case ESCAPE_KEY:
+            normal = 1;
             insert = 0;
+            visual = 0;
             putp("\033[1 q");
             fflush(stdout);
             continue;
         default:
             break;
         }
-        if (!insert)
+        if (normal)
         {
             if (keystroke == 'q')
             {
                 putp("\033[1 q");
                 fflush(stdout);
-                exit_ncurses_environment(buffer);
+                exit_ncurses_environment(buffer, clipboard_buffer);
                 printf("Quit the program successfully\n");
                 return 0;
             }
@@ -137,7 +160,7 @@ int main(int argc, char *argv[])
             else if (keystroke == 'x')
             {
                 int x, y;
-                scanf("%d %d", &x, &y); 
+                scanf("%d %d", &x, &y);
                 if (x <= no_of_lines && y <= strlen(buffer[x - 1]))
                 {
                     r = x - 1;
@@ -147,16 +170,46 @@ int main(int argc, char *argv[])
             else if (keystroke == 'i')
             {
                 insert = 1;
+                normal = 0;
+                visual = 0;
                 putp("\033[5 q");
                 fflush(stdout);
-                continue;
             }
+            else if (keystroke == 'v')
+            {
+                starting_r = r;
+                starting_c = c;
+                visual = 1;
+                normal = 0;
+                insert = 0;
+            }
+            // else if (keystroke == 'p')
+            // {
+            //     int temp_r = r;
+            //     int temp_c = c;
+            //     for(int i = 0; i < written_lines; i++)
+            //     {
+            //         if(i == 0)
+            //         {
+            //             //mvprintw(temp_r, temp_c + 1, "%s", clipboard_buffer[i]);
+            //             endwin();
+            //             printf("%s", clipboard_buffer[i]);
+            //             return 0;
+            //         }
+            //         else
+            //         {
+            //             mvprintw(temp_r, 0, "%s", clipboard_buffer[i]);
+            //         }
+            //         temp_r++;
+            //         no_of_lines++;
+            //     }
+            // }
             else if (keystroke == 's')
             {
                 FILE *output = fopen(argv[1], "w");
                 if (output == NULL)
                 {
-                    exit_ncurses_environment(buffer);
+                    exit_ncurses_environment(buffer, clipboard_buffer);
                     printf("Error saving file\n");
                     return 3;
                 }
@@ -167,14 +220,58 @@ int main(int argc, char *argv[])
                 fclose(output);
             }
         }
-        if (insert)
+        else if (visual)
+        {
+            if (keystroke == 'y')
+            {
+                end_r = r;
+                end_c = c;
+                if (end_r != starting_r)
+                {
+                    if(end_r < starting_r)
+                    {
+                        swap(&end_r, &starting_r);
+                        swap(&end_c, &starting_c);
+                    }
+                    written_lines = 0;
+                    for (int i = starting_r; i < end_r; i++)
+                    {
+                        if (i == starting_r)
+                        {
+                            strcpy(clipboard_buffer[written_lines], &buffer[i][starting_c]);
+                        }
+                        else
+                        {
+                            strcpy(clipboard_buffer[written_lines], buffer[i]);
+                        }
+                        written_lines++;
+                    }
+                    copy_partial_string(clipboard_buffer, buffer, end_c, end_r, starting_c, starting_r, written_lines);
+                }
+                else
+                {
+                    if (end_c < starting_c)
+                    {
+                        swap(&end_c, &starting_c);
+                    }
+                    written_lines = 0;
+                    copy_partial_string(clipboard_buffer, buffer, end_c, end_r, starting_c, starting_r, written_lines);
+                }
+                // endwin();
+                // printf("%s", clipboard_buffer[0]);
+                // return 0;
+                visual = 0;
+                normal = 1;
+            }
+        }
+        else if (insert)
         {
             // TAB
             if (keystroke == KEY_TAB && c < MAX_LINE_LENGTH)
             {
                 char temp[MAX_LINE_LENGTH];
                 strcpy(temp, &buffer[r][c]);
-                for(int i = c; i < c + 4; i++)
+                for (int i = c; i < c + 4; i++)
                 {
                     buffer[r][i] = ' ';
                 }
@@ -263,7 +360,7 @@ int main(int argc, char *argv[])
             }
         } // if editing
     } // while loop
-    exit_ncurses_environment(buffer);
+    exit_ncurses_environment(buffer, clipboard_buffer);
     return 0;
 }
 
@@ -279,7 +376,15 @@ void display_file(int no_of_lines, char *buffer[], int r, int c)
     return;
 }
 
-void exit_ncurses_environment(char *buffer[])
+void swap(int *a, int *b)
+{
+    *a = *a ^ *b;
+    *b = *a ^ *b;
+    *a = *a ^ *b;
+    return;
+}
+
+void exit_ncurses_environment(char *buffer[], char *clipboard_buffer[])
 {
     endwin();
     for (int i = 0; i < MAX_LINES; i++)
@@ -287,7 +392,26 @@ void exit_ncurses_environment(char *buffer[])
         free(buffer[i]);
     }
     free(buffer);
+    for (int i = 0; i < MAX_CLIPBOARD; i++)
+    {
+        free(clipboard_buffer[i]);
+    }
+    free(clipboard_buffer);
+    clipboard_buffer = NULL;
     buffer = NULL;
+    return;
+}
+
+void copy_partial_string(char *clipboard_buffer[], char *buffer[], int end_c, int end_r, int starting_c, int starting_r, int written_lines)
+{
+    int temp = (end_r == starting_r) ? starting_c : 0;
+    int k = 0;
+    for (int i = temp; i <= end_c && buffer[end_r][i] != '\0'; i++)
+    {
+        clipboard_buffer[written_lines][k] = buffer[end_r][i];
+        k++;
+    }
+    clipboard_buffer[end_r][k] = '\0';
     return;
 }
 
@@ -296,7 +420,7 @@ void help_prompt(const char *command)
     printf("Usage: './chroma %s'\n\n", command);
     printf("Normal Mode:\n");
     printf("k   --move cursor up\n");
-    printf("j   --move cursor down\n");
+    printf("written_lines   --move cursor down\n");
     printf("l   --move cursor right\n");
     printf("h   --move cursor left\n");
     printf("i   --insert mode\n");

@@ -1,18 +1,15 @@
 #include <ncurses.h>
-
+#include <stdio.h>
 int main()
 {
-    initscr();
-    printw("Hellow");
-    mvprintw(1, 10, "World");
-    move(10,10);
-    int x, y;
-    getmaxyx(stdscr, x, y);
-    printw("%d %d", x, y);
-    start_color();
-    init_pair(3, 5, 4);
-    attrset(3);
-    COLOR_PAIR(3);
-    getch();
-    endwin();
+    char buffer[10] = {'s', 'j', 'l', 'n', 't', '\0'};
+    char peakabo[10];
+    int i = 5;
+    while(i >= 0)
+    {
+        peakabo[i] = buffer[i];
+        i--;
+    }
+    printf("%s", peakabo);
+    return 0;
 }
