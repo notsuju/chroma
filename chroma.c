@@ -22,7 +22,10 @@ void display_file(int no_of_lines, char *buffer[], int r, int c);
 void exit_ncurses_environment(char *buffer[], char *clipboard_buffer[]);
 void help_prompt(const char *command);
 void copy_partial_string(char *clipboard_buffer[], char *buffer[], int end_c, int end_r, int starting_c, int starting_r, int written_lines);
+void correctly_end_lastline(char *buffer[], int last_line_index);
 void swap(int *a, int *b);
+void line_wrapping(char *buffer[], int i, int print_max, int line);
+
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -68,6 +71,9 @@ int main(int argc, char *argv[])
         }
         fclose(input);
     }
+
+    // Checking if the last line is correctly ended
+    correctly_end_lastline(buffer, (no_of_lines - 1));
 
     // Initialising screen
     initscr();
@@ -228,7 +234,7 @@ int main(int argc, char *argv[])
                 end_c = c;
                 if (end_r != starting_r)
                 {
-                    if(end_r < starting_r)
+                    if (end_r < starting_r)
                     {
                         swap(&end_r, &starting_r);
                         swap(&end_c, &starting_c);
@@ -368,9 +374,43 @@ int main(int argc, char *argv[])
 void display_file(int no_of_lines, char *buffer[], int r, int c)
 {
     clear();
+    // Get the the width and length of the terminal
+    int max_rows, max_columns;
+    getmaxyx(stdscr, max_rows, max_columns);
+
+    // Temp variable for managing the line printing index
+    int temp = 0;
+
+    // Main Loop going through the buffer line by line determined by i variable
     for (int i = 0; i < no_of_lines; i++)
     {
-        mvprintw(i, 0, "%s", buffer[i]);
+        int line_length = strlen(buffer[i]);
+
+        // Check if line_wrapping is required
+        if (line_length > max_columns)
+        {
+            // j is used for managing column index for a single line
+            int j = 0;
+            // to and from for managing index for columns from where to start and where to end the printing respectively
+            int to, from;
+
+            // Loop iterates until the split line is not less than max_columns
+            while (strnlen(&buffer[i][j * max_columns], max_columns) >= max_columns)
+            {
+                to = (j + 1) * max_columns;
+                from = j * max_columns;
+                mvprintw(temp, 0, "%.*s", to, &buffer[i][from]);
+                // no_of_lines++;
+                j++;
+                temp++;
+            }
+            mvprintw(temp, 0, "%s", &buffer[i][j * max_columns]);
+        }
+        else
+        {
+            mvprintw(temp, 0, "%s", buffer[i]);
+        }
+        temp += 1;
     }
     move(r, c);
     refresh();
@@ -416,6 +456,17 @@ void copy_partial_string(char *clipboard_buffer[], char *buffer[], int end_c, in
     return;
 }
 
+void correctly_end_lastline(char *buffer[], int last_line_index)
+{
+    int size = strlen(buffer[last_line_index]);
+    if (buffer[last_line_index][size - 1] != '\n')
+    {
+        buffer[last_line_index][size] = '\n';
+        buffer[last_line_index][size + 1] = '\0';
+    }
+    return;
+}
+
 void help_prompt(const char *command)
 {
     printf("Usage: './chroma %s'\n\n", command);
@@ -431,3 +482,17 @@ void help_prompt(const char *command)
     printf("Insert Mode:\n");
     printf("esc --enter normal mode\n");
 }
+
+// void line_wrapping(char *buffer[], int i, int max_print, int line)
+// {
+//     int mr, mc;
+//     getmaxyx(stdscr, mr, mc);
+//     if(mc > strnlen(&buffer[i][max_print], mc))
+//     {
+//         mvprintw(line, 0, "%s", &buffer[i][max_print]);
+//         return;
+//     }
+//     max_print += mc - 1;
+//     mvprintw(line, 0, "%.*s", max_print, &buffer[i][max_print - (mc - 1)]);
+//     return line_wrapping(buffer, i, max_print + 1, line + 1);
+// }
