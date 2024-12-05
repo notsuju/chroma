@@ -374,38 +374,33 @@ int main(int argc, char *argv[])
 void display_file(int no_of_lines, char *buffer[], int r, int c)
 {
     clear();
-    // Get the the width and length of the terminal
     int max_rows, max_columns;
     getmaxyx(stdscr, max_rows, max_columns);
-
     // Temp variable for managing the line printing index
     int temp = 0;
-
     // Main Loop going through the buffer line by line determined by i variable
     for (int i = 0; i < no_of_lines; i++)
     {
         int line_length = strlen(buffer[i]);
-
         // Check if line_wrapping is required
         if (line_length > max_columns)
         {
-            // j is used for managing column index for a single line
+            // j is used for managing to and from positions
             int j = 0;
             // to and from for managing index for columns from where to start and where to end the printing respectively
             int to, from;
-
             // Loop iterates until the split line is not less than max_columns
             while (strnlen(&buffer[i][j * max_columns], max_columns) >= max_columns)
             {
                 to = (j + 1) * max_columns;
                 from = j * max_columns;
                 mvprintw(temp, 0, "%.*s", to, &buffer[i][from]);
-                // no_of_lines++;
                 j++;
                 temp++;
             }
             mvprintw(temp, 0, "%s", &buffer[i][j * max_columns]);
         }
+        // if not normally print the line
         else
         {
             mvprintw(temp, 0, "%s", buffer[i]);
@@ -483,16 +478,3 @@ void help_prompt(const char *command)
     printf("esc --enter normal mode\n");
 }
 
-// void line_wrapping(char *buffer[], int i, int max_print, int line)
-// {
-//     int mr, mc;
-//     getmaxyx(stdscr, mr, mc);
-//     if(mc > strnlen(&buffer[i][max_print], mc))
-//     {
-//         mvprintw(line, 0, "%s", &buffer[i][max_print]);
-//         return;
-//     }
-//     max_print += mc - 1;
-//     mvprintw(line, 0, "%.*s", max_print, &buffer[i][max_print - (mc - 1)]);
-//     return line_wrapping(buffer, i, max_print + 1, line + 1);
-// }
