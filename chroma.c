@@ -412,6 +412,18 @@ void display_file(int no_of_lines, char *buffer[], int r, int c)
     return;
 }
 
+// void display_file(int no_of_lines, char *buffer[], int r, int c)
+// {
+//     clear();
+//     for (int i = 0; i < no_of_lines; i++)
+//     {
+//         mvprintw(i, 0, "%s", buffer[i]);
+//     }
+//     move(r, c);
+//     refresh();
+//     return;
+// }
+
 void swap(int *a, int *b)
 {
     *a = *a ^ *b;
