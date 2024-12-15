@@ -9,12 +9,10 @@
 #define ESCAPE_KEY 27
 #define KEY_TAB '\t'
 
-typedef struct 
+typedef struct
 {
-    int buffer_line;
-    int buffer_columns;
-    int visual_lines;
-    int visual_columns;
+    int buffer;
+    int visual;
 } cursor_postion;
 
 char **clipboard()
@@ -26,14 +24,15 @@ char **clipboard()
     }
     return buffer;
 }
-void insert_character(char *buffer[], int r, int c, int no_of_lines);
-void display_file(int no_of_lines, char *buffer[], int r, int c);
+void insert_enter(char *buffer[], int r, int c, int no_of_lines);
+void display_file(int no_of_lines, char *buffer[], int r, int c, cursor_postion *row);
 void exit_ncurses_environment(char *buffer[], char *clipboard_buffer[]);
 void help_prompt(const char *command);
 void copy_partial_string(char *clipboard_buffer[], char *buffer[], int end_c, int end_r, int starting_c, int starting_r, int written_lines);
 void correctly_end_lastline(char *buffer[], int last_line_index);
 void swap(int *a, int *b);
 void line_wrapping(char *buffer[], int i, int print_max, int line);
+void line_wrapping_cal(char *buffer[], int no_of_lines, int visual_lines[], int max_rows, int max_columns);
 
 int main(int argc, char *argv[])
 {
@@ -91,7 +90,6 @@ int main(int argc, char *argv[])
     keypad(stdscr, TRUE);
     putp("\033[1 q");
     fflush(stdout);
-    // timeout(100); // Set a timeout for getch() to handle ESC key better
 
     // Actually algorithm
     int max_rows, max_columns;
@@ -108,9 +106,15 @@ int main(int argc, char *argv[])
     int visual = 0;
     int written_lines = 0;
     int keystroke;
+    int visual_lines[MAX_LINES] = {1};
+    cursor_postion row;
+    row.visual = 0;
+    row.buffer = 0;
+    line_wrapping_cal(buffer, no_of_lines, visual_lines, max_rows, max_columns);
+
     while (1)
     {
-        display_file(no_of_lines, buffer, r, c);
+        display_file(no_of_lines, buffer, r, c, &row);
         keystroke = getch();
         switch (keystroke)
         {
@@ -118,11 +122,13 @@ int main(int argc, char *argv[])
             if (r > 0)
             {
                 r--;
+                row.visual -= visual_lines[r];
             }
             continue;
         case KEY_DOWN:
             if (r < (no_of_lines - 1))
             {
+                row.visual += visual_lines[r];
                 r++;
             }
             continue;
@@ -337,7 +343,7 @@ int main(int argc, char *argv[])
             // NEW LINE
             else if (keystroke == KEY_ENTER || keystroke == 10 || keystroke == 13)
             {
-                insert_character(buffer, r, c, no_of_lines);
+                insert_enter(buffer, r, c, no_of_lines);
                 r++;
                 c = 0;
                 no_of_lines++;
@@ -367,7 +373,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void display_file(int no_of_lines, char *buffer[], int r, int c)
+void display_file(int no_of_lines, char *buffer[], int r, int c, cursor_postion *row)
 {
     clear();
     int max_rows, max_columns;
@@ -403,7 +409,7 @@ void display_file(int no_of_lines, char *buffer[], int r, int c)
         }
         temp += 1;
     }
-    move(r, c);
+    move(row->visual, c);
     refresh();
     return;
 }
@@ -474,22 +480,34 @@ void help_prompt(const char *command)
     printf("esc --enter normal mode\n");
 }
 
-void insert_character(char *buffer[], int r, int c, int no_of_lines)
+void insert_enter(char *buffer[], int r, int c, int no_of_lines)
 {
-                // Shift all lines down
-                for (int i = no_of_lines; i > r; i--)
-                {
-                    strcpy(buffer[i], buffer[i - 1]);
-                }
+    // Shift all lines down
+    for (int i = no_of_lines; i > r; i--)
+    {
+        strcpy(buffer[i], buffer[i - 1]);
+    }
 
-                // Create new line buffer
-                char temp[MAX_LINE_LENGTH];
-                strcpy(temp, &buffer[r][c]);
-                buffer[r][c] = '\n';
-                buffer[r][c + 1] = '\0';
+    // Create new line buffer
+    char temp[MAX_LINE_LENGTH];
+    strcpy(temp, &buffer[r][c]);
+    buffer[r][c] = '\n';
+    buffer[r][c + 1] = '\0';
 
-                // Set up next line
-                memset(buffer[r + 1], '\0', MAX_LINE_LENGTH);
-                strcpy(buffer[r + 1], temp);
+    // Set up next line
+    memset(buffer[r + 1], '\0', MAX_LINE_LENGTH);
+    strcpy(buffer[r + 1], temp);
+}
 
+void line_wrapping_cal(char *buffer[], int no_of_lines, int visual_lines[], int max_rows, int max_columns)
+{
+    for(int i = 0; i < no_of_lines; i++)
+    {
+        int temp = strlen(buffer[i]);
+        while(temp > max_columns)
+        {
+            temp = temp / max_columns;
+            visual_lines[i]++;
+        }
+    }
 }
