@@ -9,6 +9,14 @@
 #define ESCAPE_KEY 27
 #define KEY_TAB '\t'
 
+typedef struct 
+{
+    int buffer_line;
+    int buffer_columns;
+    int visual_lines;
+    int visual_columns;
+} cursor_postion;
+
 char **clipboard()
 {
     char **buffer = (char **)malloc(MAX_CLIPBOARD * sizeof(char *));
@@ -18,6 +26,7 @@ char **clipboard()
     }
     return buffer;
 }
+void insert_character(char *buffer[], int r, int c, int no_of_lines);
 void display_file(int no_of_lines, char *buffer[], int r, int c);
 void exit_ncurses_environment(char *buffer[], char *clipboard_buffer[]);
 void help_prompt(const char *command);
@@ -34,7 +43,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Help promp
+    // Help prompt
     if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "--h") == 0)
     {
         help_prompt(argv[1]);
@@ -85,6 +94,8 @@ int main(int argc, char *argv[])
     // timeout(100); // Set a timeout for getch() to handle ESC key better
 
     // Actually algorithm
+    int max_rows, max_columns;
+    getmaxyx(stdscr, max_rows, max_columns);
     int r = 0;
     int c = 0;
     int starting_r = 0;
@@ -326,22 +337,7 @@ int main(int argc, char *argv[])
             // NEW LINE
             else if (keystroke == KEY_ENTER || keystroke == 10 || keystroke == 13)
             {
-                // Shift all lines down
-                for (int i = no_of_lines; i > r; i--)
-                {
-                    strcpy(buffer[i], buffer[i - 1]);
-                }
-
-                // Create new line buffer
-                char temp[MAX_LINE_LENGTH];
-                strcpy(temp, &buffer[r][c]);
-                buffer[r][c] = '\n';
-                buffer[r][c + 1] = '\0';
-
-                // Set up next line
-                memset(buffer[r + 1], '\0', MAX_LINE_LENGTH);
-                strcpy(buffer[r + 1], temp);
-
+                insert_character(buffer, r, c, no_of_lines);
                 r++;
                 c = 0;
                 no_of_lines++;
@@ -478,3 +474,22 @@ void help_prompt(const char *command)
     printf("esc --enter normal mode\n");
 }
 
+void insert_character(char *buffer[], int r, int c, int no_of_lines)
+{
+                // Shift all lines down
+                for (int i = no_of_lines; i > r; i--)
+                {
+                    strcpy(buffer[i], buffer[i - 1]);
+                }
+
+                // Create new line buffer
+                char temp[MAX_LINE_LENGTH];
+                strcpy(temp, &buffer[r][c]);
+                buffer[r][c] = '\n';
+                buffer[r][c + 1] = '\0';
+
+                // Set up next line
+                memset(buffer[r + 1], '\0', MAX_LINE_LENGTH);
+                strcpy(buffer[r + 1], temp);
+
+}
