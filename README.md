@@ -1,5 +1,10 @@
 # Chroma Text Editor
-Chroma is one of my first projects, it is basically a very simple terminal based text editor with very limited functionaliy written in C.(currently improving)
+Chroma is one of my first projects, it is basically a very simple terminal based text editor with very limited functionaliy written in C.
+Only made for learning new things.
+
+> [!NOTE]  
+> This is an Abandoned Project.
+
 # Preview
 ![gif](assests/chroma_test-ezgif.com-video-to-gif-converter.gif)
 # Usage
